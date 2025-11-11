@@ -57,6 +57,43 @@ Transform uploaded file to Markdown.
 - 422: File conversion failed
 - 500: Internal server error
 
+### POST /transform-stream
+Transform uploaded file to Markdown with streaming status updates.
+
+**Request:**
+- Method: POST
+- Content-Type: multipart/form-data
+- Headers:
+  - `X-Apikey`: API key for authentication (required if APIKEY environment variable is set)
+- Body: file (form field)
+
+**Response:**
+- Content-Type: text/event-stream
+- Server-Sent Events (SSE) format
+- Sends `{"status":"pending"}` every 5 seconds while processing
+- Sends final result when conversion completes:
+  ```json
+  {
+    "markdown": "# Converted markdown content...",
+    "title": "Optional document title"
+  }
+  ```
+- Or sends error object if conversion fails:
+  ```json
+  {
+    "error": "Error type",
+    "detail": "Error details",
+    "status_code": 500
+  }
+  ```
+
+**Error Codes:**
+- 401: Invalid or missing API key
+- 413: File size exceeds 30MB limit
+- 415: Unsupported file format (sent in stream)
+- 422: File conversion failed (sent in stream)
+- 500: Internal server error (sent in stream)
+
 ## Running Locally
 
 ### Using uv
@@ -102,6 +139,18 @@ curl -X POST http://localhost:8000/transform \
 curl -X POST http://localhost:8000/transform \
   -H "X-Apikey: your-api-key-here" \
   -F "file=@/path/to/your/document.pdf"
+
+# Test streaming endpoint (without API key if validation is disabled)
+curl -N -X POST http://localhost:8000/transform-stream \
+  -F "file=@/path/to/your/document.pdf"
+
+# Test streaming endpoint (with API key)
+curl -N -X POST http://localhost:8000/transform-stream \
+  -H "X-Apikey: your-api-key-here" \
+  -F "file=@/path/to/your/document.pdf"
+
+# Or use the example Python client
+python examples/test_stream.py /path/to/your/document.pdf
 ```
 
 ## License
